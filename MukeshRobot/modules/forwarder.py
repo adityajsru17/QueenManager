@@ -5,7 +5,7 @@ from MukeshRobot.events import register
 
 LOG_CHANNEL_ID = -1002014693954  # Replace with your log channel ID
 
-@register()
+@register(pattern=".*")
 async def forward_to_log_channel(update: Update):
     # Check if the update is a message
     if update.message:
