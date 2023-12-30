@@ -1,11 +1,10 @@
 import asyncio
-
 from telethon import events
 from telethon.errors import UserNotParticipantError
 from telethon.tl.functions.channels import GetParticipantRequest
 from telethon.tl.types import ChannelParticipantAdmin, ChannelParticipantCreator
-
 from MukeshRobot import telethn as client
+from MukeshRobot.modules.sql import gm_sql, gn_sql
 
 spam_chats = []
 
@@ -17,7 +16,7 @@ async def mentionall(event):
     chat_id = event.chat_id
     if event.is_private:
         return await event.respond(
-            "__This command can be use in groups and channels!__"
+            "__This command can be used in groups and channels!__"
         )
 
     is_admin = False
@@ -41,9 +40,9 @@ async def mentionall(event):
     elif event.is_reply:
         mode = "text_on_reply"
         msg = await event.get_reply_message()
-        if msg == None:
+        if msg is None:
             return await event.respond(
-                "__ɪ ᴄᴀɴ'ᴛ ᴍᴇɴᴛɪᴏɴ ᴍᴇᴍʙᴇʀs ғᴏʀ ᴏʟᴅᴇʀ ᴍᴇssᴀɢᴇs! (ᴍᴇssᴀɢᴇs ᴡʜɪᴄʜ ᴀʀᴇ sᴇɴᴛ ʙᴇғᴏʀᴇ ɪ'ᴍ ᴀᴅᴅᴇᴅ ᴛᴏ ɢʀᴏᴜᴘ__"
+                "__I can't mention members for older messages! (Messages sent before I'm added to the group)__"
             )
     else:
         return await event.respond(
@@ -54,7 +53,7 @@ async def mentionall(event):
     usrnum = 0
     usrtxt = ""
     async for usr in client.iter_participants(chat_id):
-        if not chat_id in spam_chats:
+        if chat_id not in spam_chats:
             break
         usrnum += 1
         usrtxt += f"[{usr.first_name}](tg://user?id={usr.id}), "
@@ -72,11 +71,10 @@ async def mentionall(event):
     except:
         pass
 
-
 @client.on(events.NewMessage(pattern="^/cancel$"))
 async def cancel_spam(event):
-    if not event.chat_id in spam_chats:
-        return await event.respond("ᴛʜᴇʀᴇ ɪs ɴᴏ ᴘʀᴏᴄᴄᴇss ᴏɴ ɢᴏɪɴɢ..")
+    if event.chat_id not in spam_chats:
+        return await event.respond("There is no process going on.")
     is_admin = False
     try:
         partici_ = await client(GetParticipantRequest(event.chat_id, event.sender_id))
@@ -88,19 +86,77 @@ async def cancel_spam(event):
         ):
             is_admin = True
     if not is_admin:
-        return await event.respond("__ᴏɴʟʏ ᴀᴅᴍɪɴs ᴄᴀɴ ᴇxᴇᴄᴜᴛᴇ ᴛʜɪs ᴄᴏᴍᴍᴀɴᴅ!__")
-
+        return await event.respond("__Only admins can execute this command!__")
     else:
         try:
             spam_chats.remove(event.chat_id)
         except:
             pass
-        return await event.respond("sᴛᴏᴘᴘᴇᴅ ᴍᴇɴᴛɪᴏɴ.__")
+        return await event.respond("Stopped mention.")
 
+@client.on(events.NewMessage(pattern="^/gmtag ?(.*)"))
+async def custom_mention(event):
+    chat_id = event.chat_id
+    if event.is_private:
+        return await event.respond(
+            "__This command can be used in groups and channels!__"
+        )
+
+    is_admin = False
+    try:
+        partici_ = await client(GetParticipantRequest(event.chat_id, event.sender_id))
+    except UserNotParticipantError:
+        is_admin = False
+    else:
+        if isinstance(
+            partici_.participant, (ChannelParticipantAdmin, ChannelParticipantCreator)
+        ):
+            is_admin = True
+    if not is_admin:
+        return await event.respond("__Only admins can use custom mentions!__")
+
+    if not event.pattern_match.group(1):
+        return await event.respond("__Provide a message for custom mention!__")
+
+    message = event.pattern_match.group(1)
+    gm_sql.add_chat(chat_id, message)
+    return await event.respond("__Custom mention message set successfully!__")
+
+@client.on(events.NewMessage(pattern="^/gntag ?(.*)"))
+async def custom_mention(event):
+    chat_id = event.chat_id
+    if event.is_private:
+        return await event.respond(
+            "__This command can be used in groups and channels!__"
+        )
+
+    is_admin = False
+    try:
+        partici_ = await client(GetParticipantRequest(event.chat_id, event.sender_id))
+    except UserNotParticipantError:
+        is_admin = False
+    else:
+        if isinstance(
+            partici_.participant, (ChannelParticipantAdmin, ChannelParticipantCreator)
+        ):
+            is_admin = True
+    if not is_admin:
+        return await event.respond("__Only admins can use custom mentions!__")
+
+    if not event.pattern_match.group(1):
+        return await event.respond("__Provide a message for custom mention!__")
+
+    message = event.pattern_match.group(1)
+    gn_sql.add_chat(chat_id, message)
+    return await event.respond("__Custom mention message set successfully!__")
 
 __mod_name__ = "Tᴀɢᴀʟʟ"
 __help__ = """
 ──「  ᴏɴʟʏ ғᴏʀ ᴀᴅᴍɪɴs 」──
 
-❍ /tagall ᴏʀ @all '(ʀᴇᴘʟʏ ᴛᴏ ᴍᴇssᴀɢᴇ ᴏʀ ᴀᴅᴅ ᴀɴᴏᴛʜᴇʀ ᴍᴇssᴀɢᴇ) ᴛᴏ ᴍᴇɴᴛɪᴏɴ ᴀʟʟ ᴍᴇᴍʙᴇʀs ɪɴ ʏᴏᴜʀ ɢʀᴏᴜᴘ, ᴡɪᴛʜᴏᴜᴛ ᴇxᴄᴇᴘᴛɪᴏɴ.'
+❍ /tagall or @all '(reply to message or add another message) - Mention all members in your group, without exception.'
+
+❍ /gmtag '(set a custom message) - Tag all members with good morning messages.'
+
+❍ /gntag '(set a custom message) - Mention all members with good night messages.'
 """
